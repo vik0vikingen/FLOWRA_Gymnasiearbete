@@ -1,0 +1,84 @@
+import serial
+import matplotlib.pyplot as plt
+from collections import deque
+
+ser = serial.Serial(
+    port='COM3',        
+    baudrate=115200,
+    timeout=1
+)
+
+# Databuffertar
+max_points = 12
+
+temp = deque(maxlen=max_points)
+fukt = deque(maxlen=max_points)
+ph = deque(maxlen=max_points)
+
+ec = deque(maxlen=max_points)
+
+n = deque(maxlen=max_points)
+p = deque(maxlen=max_points)
+k = deque(maxlen=max_points)
+
+tidsindex = deque(maxlen=max_points)
+
+plt.ion()
+fig, ax = plt.subplots(3, 1, figsize=(11, 13), constrained_layout=True)
+
+i = 0
+
+while True:
+    line = ser.readline().decode().strip()
+
+    if not line:
+        continue
+
+    try:
+        t, m, ph_v, ec_v, n_v, p_v, k_v = map(float, line.split(","))
+
+        tidsindex.append(i * 2)  # varannan timme
+        i += 1
+
+        temp.append(t)
+        fukt.append(m)
+        ph.append(ph_v)
+
+        ec.append(ec_v)
+
+        n.append(n_v)
+        p.append(p_v)
+        k.append(k_v)
+
+        #Rensa grafer
+        for a in ax:
+            a.cla()
+
+        # Diagram 1
+        ax[0].plot(tidsindex, temp, marker='o', label="Jordtemperatur (°C)")
+        ax[0].plot(tidsindex, fukt, marker='o', label="Markfukt (%)")
+        ax[0].plot(tidsindex, ph, marker='o', label="pH-värde")
+        ax[0].set_title("Temperatur, markfukt och pH")
+        ax[0].legend()
+        ax[0].grid(True)
+
+        # Diagram 2
+        ax[1].plot(tidsindex, n, marker='o', label="Kväve (N)")
+        ax[1].plot(tidsindex, p, marker='o', label="Fosfor (P)")
+        ax[1].plot(tidsindex, k, marker='o', label="Kalium (K)")
+        ax[1].set_title("Näringsämnen (NPK)")
+        ax[1].set_ylabel("mg/kg")
+        ax[1].legend()
+        ax[1].grid(True)
+
+        # Diagram 3
+        ax[2].plot(tidsindex, ec, marker='o', label="Konduktivitet (µS/cm)")
+        ax[2].set_title("Elektrisk konduktivitet / salinitet")
+        ax[2].set_xlabel("Tid (timmar)")
+        ax[2].legend()
+        ax[2].grid(True)
+
+        plt.pause(0.1)
+
+    except ValueError:
+        print("Felaktig data:", line)
